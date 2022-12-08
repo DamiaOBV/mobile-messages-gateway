@@ -29,49 +29,51 @@ public class NumberPrefixServiceTest {
     NumberPrefixService numberPrefixService;
 
     @Nested
-    @DisplayName("removeLeadingPlusSignAndZeros")
-    class removeLeadingPlusSignAndZeros {
+    @DisplayName("removeNumLeadingPlusSignAndZeros")
+    class removeNumLeadingPlusSignAndZeros {
 
         @Nested
         @DisplayName("failure")
-        class removeLeadingPlusSignAndZeros_Failure {
+        class removeNumLeadingPlusSignAndZeros_Failure {
 
             @Test
-            @DisplayName("removeLeadingPlusSignAndZeros with null input should throw IllegalArgumentException")
-            public void removeLeadingPlusSignAndZeros_IllegalArgumentException() {
+            @DisplayName("removeNumLeadingPlusSignAndZeros with null input should throw IllegalArgumentException")
+            public void removeNumLeadingPlusSignAndZeros_IllegalArgumentException() {
                 Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                    numberPrefixService.removeLeadingPlusSignAndZeros(null);
+                    numberPrefixService.removeNumLeadingPlusSignAndZeros(null);
                 });
-                Assertions.assertEquals(ERROR_REMOVE_LEAD_PLUS_0_NULL_INPUT, exception.getMessage());
+                Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + null, exception.getMessage());
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {"asdas","+asd102das","","    ","+","+++123"})
+            @DisplayName("removeNumLeadingPlusSignAndZeros with non numeric input should throw IllegalArgumentException")
+            public void removeNumLeadingPlusSignAndZeros_RemovePlusAndZeros(String number) {
+                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+                    numberPrefixService.removeNumLeadingPlusSignAndZeros(number);
+                });
+                Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + number, exception.getMessage());
             }
         }
 
         @Nested
         @DisplayName("success")
-        class removeLeadingPlusSignAndZeros_Success {
+        class removeNumLeadingPlusSignAndZeros_Success {
 
             @ParameterizedTest
-            @ValueSource(strings = {"", "asdas", "123044", "asd102das", "    "})
-            @DisplayName("removeLeadingPlusSignAndZeros with an input string that does not start with '+' or zeros should bypass the argument")
-            public void removeLeadingPlusSignAndZeros_Bypass(String str) {
-                Assertions.assertEquals(numberPrefixService.removeLeadingPlusSignAndZeros(str), str);
+            @MethodSource("generateremoveNumLeadingPlusSignAndZerosValidData")
+            @DisplayName("removeNumLeadingPlusSignAndZeros with an input string that starts with '+' or zeros should return the argument without")
+            public void removeNumLeadingPlusSignAndZeros_RemovePlusAndZeros(String input, String output) {
+                Assertions.assertEquals(numberPrefixService.removeNumLeadingPlusSignAndZeros(input), output);
             }
 
-            @ParameterizedTest
-            @MethodSource("generateRemoveLeadingPlusSignAndZerosValidData")
-            @DisplayName("removeLeadingPlusSignAndZeros with an input string that starts with '+' or zeros should return the argument without")
-            public void removeLeadingPlusSignAndZeros_RemovePlusAndZeros(String input, String output) {
-                Assertions.assertEquals(numberPrefixService.removeLeadingPlusSignAndZeros(input), output);
-            }
-
-            private static Stream<Arguments> generateRemoveLeadingPlusSignAndZerosValidData() {
-                return Stream.of(Arguments.of("+", ""),
-                                 Arguments.of("+0000", ""),
+            private static Stream<Arguments> generateremoveNumLeadingPlusSignAndZerosValidData() {
+                return Stream.of(Arguments.of("+0000", ""),
                                  Arguments.of("0", ""),
                                  Arguments.of("0000", ""),
                                  Arguments.of("+0000123", "123"),
                                  Arguments.of("+123", "123"),
-                                 Arguments.of("+++123", "++123"),
+                                 Arguments.of("15616123", "15616123"),
                                  Arguments.of("+0000123", "123"));
             }
 

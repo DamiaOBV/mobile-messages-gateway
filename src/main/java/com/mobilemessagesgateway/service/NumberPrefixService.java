@@ -4,5 +4,5 @@ public interface NumberPrefixService {
 
     int getPrefixFromNumber(String number, int[] prefixes);
 
-    String removeLeadingPlusSignAndZeros(String str);
+    String removeNumLeadingPlusSignAndZeros(String str);
 }

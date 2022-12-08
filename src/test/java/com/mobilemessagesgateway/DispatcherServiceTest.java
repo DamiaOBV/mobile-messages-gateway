@@ -9,6 +9,8 @@ import com.mobilemessagesgateway.domain.dto.SmsResponse;
 import com.mobilemessagesgateway.domain.entity.Provider;
 import com.mobilemessagesgateway.domain.repository.ProviderRepository;
 import com.mobilemessagesgateway.service.DispatcherService;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.extern.apachecommons.CommonsLog;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,35 +76,42 @@ public class DispatcherServiceTest {
             @Test
             @DisplayName("sendSms with a correct input should return an object instace of SmsResponse")
             public void sendSms_CorrectSend() {
-                SmsRequest smsRequest = SmsRequest.builder().text("This is a message").number("3412345").build();
-                SmsResponse smsResponse = dispatcherService.sendSms(smsRequest);
+                List<SmsRequest> smsRequests = new ArrayList<>();
+                smsRequests.add(SmsRequest.builder().text("This is a message").number("3412345").build());
+                List<SmsResponse> smsResponses = dispatcherService.sendSms(smsRequests);
+                SmsResponse smsResponse = smsResponses.get(0);
                 log.info("provider: " + smsResponse.getProvider());
                 log.info("id: " + smsResponse.getId());
                 Assertions.assertInstanceOf(SmsResponse.class, smsResponse);
             }
 
             @Test
-            @DisplayName("sendSms when there are two providers with minimum cost a random provider should be used")
-            public void sendSms_Randomness2() {
+            @DisplayName("sendSms when there are two providers with minimum cost a random provider should be used - multiple sms")
+            public void sendSms_Randomness2_Multiple() {
                 double minPercent = 40;
                 double maxPercent = 60;
                 int iterations = 100;
                 double providerP6 = 0;
                 double providerP7 = 0;
-                SmsRequest smsRequest = SmsRequest.builder().text("This is a message").number("3412345").build();
-                SmsResponse smsResponse;
+                List<SmsResponse> smsResponses;
                 String provider;
+                List<SmsRequest> smsRequests = new ArrayList<>();
+                smsRequests.add(SmsRequest.builder().text("This is a message").number("+3412345").build());
+                smsRequests.add(SmsRequest.builder().text("This is a message 2").number("003412346").build());
+                smsRequests.add(SmsRequest.builder().text("This is a message 3").number("3412376").build());
                 for (int i = 0; i < iterations; i++) {
-                    smsResponse = dispatcherService.sendSms(smsRequest);
-                    provider = smsResponse.getProvider();
-                    if (provider.equals("P6")) {
-                        providerP6++;
-                    } else if (provider.equals("P7")) {
-                        providerP7++;
+                    smsResponses = dispatcherService.sendSms(smsRequests);
+                    for (int j = 0; j < 3; j++) {
+                        provider = smsResponses.get(j).getProvider();
+                        if (provider.equals("P6")) {
+                            providerP6++;
+                        } else if (provider.equals("P7")) {
+                            providerP7++;
+                        }
                     }
                 }
-                double percentP6 = (providerP6 / iterations) * 100;
-                double percentP7 = (providerP7 / iterations) * 100;
+                double percentP6 = (providerP6 / (iterations * 3)) * 100;
+                double percentP7 = (providerP7 / (iterations * 3)) * 100;
                 log.info("providerP6: " + percentP6);
                 log.info("providerP7: " + percentP7);
                 Assertions.assertTrue(percentP6 > minPercent && percentP6 < maxPercent && percentP7 > minPercent && percentP7 < maxPercent);
@@ -118,17 +127,17 @@ public class DispatcherServiceTest {
                 double providerP9 = 0;
                 double providerP10 = 0;
                 SmsRequest smsRequest = SmsRequest.builder().text("This is a message").number("3512345").build();
-                SmsResponse smsResponse;
+                List<SmsResponse> smsResponses;
                 String provider;
+                List<SmsRequest> smsRequests = new ArrayList<>();
+                smsRequests.add(smsRequest);
                 for (int i = 0; i < iterations; i++) {
-                    smsResponse = dispatcherService.sendSms(smsRequest);
-                    provider = smsResponse.getProvider();
-                    if (provider.equals("P8")) {
-                        providerP8++;
-                    } else if (provider.equals("P9")) {
-                        providerP9++;
-                    } else if (provider.equals("P10")) {
-                        providerP10++;
+                    smsResponses = dispatcherService.sendSms(smsRequests);
+                    provider = smsResponses.get(0).getProvider();
+                    switch (provider) {
+                        case "P8" -> providerP8++;
+                        case "P9" -> providerP9++;
+                        case "P10" -> providerP10++;
                     }
                 }
                 double percentP8 = (providerP8 / iterations) * 100;
@@ -142,7 +151,7 @@ public class DispatcherServiceTest {
             }
 
             @Test
-            @DisplayName("sendSms when there are four provider with minimum cost a random provider should be used")
+            @DisplayName("sendSms when there are four provider with minimum cost a random provider should be used - multiple sms")
             public void sendSms_Randomness4() {
                 double minPercent = 10;
                 double maxPercent = 35;
@@ -151,26 +160,29 @@ public class DispatcherServiceTest {
                 double providerP12 = 0;
                 double providerP13 = 0;
                 double providerP14 = 0;
-                SmsRequest smsRequest = SmsRequest.builder().text("This is a message").number("3612345").build();
-                SmsResponse smsResponse;
+                List<SmsResponse> smsResponses;
                 String provider;
+                List<SmsRequest> smsRequests = new ArrayList<>();
+                smsRequests.add(SmsRequest.builder().text("This is a message").number("+3612345").build());
+                smsRequests.add(SmsRequest.builder().text("This is a message 2").number("003612346").build());
+                smsRequests.add(SmsRequest.builder().text("This is a message 3").number("3612376").build());
+                smsRequests.add(SmsRequest.builder().text("This is a message 4").number("+03612376").build());
                 for (int i = 0; i < iterations; i++) {
-                    smsResponse = dispatcherService.sendSms(smsRequest);
-                    provider = smsResponse.getProvider();
-                    if (provider.equals("P11")) {
-                        providerP11++;
-                    } else if (provider.equals("P12")) {
-                        providerP12++;
-                    } else if (provider.equals("P13")) {
-                        providerP13++;
-                    } else if (provider.equals("P14")) {
-                        providerP14++;
+                    smsResponses = dispatcherService.sendSms(smsRequests);
+                    for (int j = 0; j < 4; j++) {
+                        provider = smsResponses.get(j).getProvider();
+                        switch (provider) {
+                            case "P11" -> providerP11++;
+                            case "P12" -> providerP12++;
+                            case "P13" -> providerP13++;
+                            case "P14" -> providerP14++;
+                        }
                     }
                 }
-                double percentP11 = (providerP11 / iterations) * 100;
-                double percentP12 = (providerP12 / iterations) * 100;
-                double percentP13 = (providerP13 / iterations) * 100;
-                double percentP14 = (providerP14 / iterations) * 100;
+                double percentP11 = (providerP11 / (iterations * 4)) * 100;
+                double percentP12 = (providerP12 / (iterations * 4)) * 100;
+                double percentP13 = (providerP13 / (iterations * 4)) * 100;
+                double percentP14 = (providerP14 / (iterations * 4)) * 100;
                 log.info("providerP8: " + percentP11);
                 log.info("providerP9: " + percentP12);
                 log.info("providerP10: " + percentP13);
@@ -188,30 +200,27 @@ public class DispatcherServiceTest {
             @Test
             @DisplayName("sendSms with not numeric number argument should throw IllegalArgumentException")
             public void sendSms_IllegalArgumentException_NaN() {
-                SmsRequest smsRequest = SmsRequest.builder().text("This is a message").number("dasd&%").build();
-                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                    dispatcherService.sendSms(smsRequest);
-                });
-                Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + smsRequest.getNumber(), exception.getMessage());
+                List<SmsRequest> smsRequests = new ArrayList<>();
+                smsRequests.add(SmsRequest.builder().text("This is a message").number("dasd&%").build());
+                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> dispatcherService.sendSms(smsRequests));
+                Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + smsRequests.get(0).getNumber(), exception.getMessage());
             }
 
             @Test
             @DisplayName("sendSms with null number argument should throw IllegalArgumentException")
             public void sendSms_IllegalArgumentException_Null() {
-                SmsRequest smsRequest = SmsRequest.builder().text("This is a message").number(null).build();
-                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                    dispatcherService.sendSms(smsRequest);
-                });
-                Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + smsRequest.getNumber(), exception.getMessage());
+                List<SmsRequest> smsRequests = new ArrayList<>();
+                smsRequests.add(SmsRequest.builder().text("This is a message").number(null).build());
+                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> dispatcherService.sendSms(smsRequests));
+                Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + smsRequests.get(0).getNumber(), exception.getMessage());
             }
 
             @Test
             @DisplayName("sendSms with an unknown prefix number should throw IllegalArgumentException")
             public void sendSms_IllegalArgumentException_NaaN() {
-                SmsRequest smsRequest = SmsRequest.builder().text("This is a message").number("+31666456789").build();
-                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                    dispatcherService.sendSms(smsRequest);
-                });
+                List<SmsRequest> smsRequests = new ArrayList<>();
+                smsRequests.add(SmsRequest.builder().text("This is a message").number("+31666456789").build());
+                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> dispatcherService.sendSms(smsRequests));
                 Assertions.assertTrue(exception.getMessage().startsWith(ERROR_PREFIX_NOT_FOUND_FOR_NUMBER));
             }
         }

@@ -21,11 +21,11 @@ public class NumberPrefixServiceImpl implements NumberPrefixService {
     /**
      * getPrefixFromNumber
      *
-     * @param number numeric string
+     * @param number   numeric string
      * @param prefixes array of prefixes
      * @return prefix of the number if it is provided in the prefixes
-     * @throws NullPointerException     if prefixes array is null
-     * @throws IllegalArgumentException if number is not numeric or does not start with any of the provided prefixes
+     * @throws IllegalArgumentException if number is not numeric or does not start with any of the provided prefixes, if number is null or if prefixes
+     *                                  are null
      */
     public int getPrefixFromNumber(String number, int[] prefixes) {
         if (number == null || !isNumeric(number)) {
@@ -48,18 +48,19 @@ public class NumberPrefixServiceImpl implements NumberPrefixService {
     /**
      * removeLeadingPlusSignAndZeros
      *
-     * @param str string
+     * @param number string
      * @return input string without the leading plus sign and zeros
-     * @throws NullPointerException if str is null
+     * @throws NullPointerException     if str is null
+     * @throws IllegalArgumentException if number is not numeric or does not start with any of the provided prefixes
      */
-    public String removeLeadingPlusSignAndZeros(String str) {
-        if (str == null) {
-            throw new IllegalArgumentException(ERROR_REMOVE_LEAD_PLUS_0_NULL_INPUT);
+    public String removeNumLeadingPlusSignAndZeros(String number) {
+        if (number == null || !isNumeric(number)) {
+            throw new IllegalArgumentException(ERROR_INVALID_NUMBER + " " + number);
         }
-        if (str.startsWith("+")) {
-            str = str.substring(1);
+        if (number.startsWith("+")) {
+            number = number.substring(1);
         }
-        return str.replaceFirst("^0*", "");
+        return number.replaceFirst("^0*", "");
     }
 
     /**

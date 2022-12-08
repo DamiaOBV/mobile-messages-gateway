@@ -11,6 +11,8 @@ import com.mobilemessagesgateway.domain.entity.Provider;
 import com.mobilemessagesgateway.domain.entity.Sms;
 import com.mobilemessagesgateway.domain.repository.ProviderRepository;
 import com.mobilemessagesgateway.domain.repository.SmsRepository;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,19 +34,23 @@ public class DispatcherServiceImpl implements DispatcherService {
     /**
      * getSingleProvider
      *
-     * @param smsRequest SmsRequest object
-     * @return SmsResponse object after sending the sms
+     * @param smsRequests list of SmsRequest object
+     * @return List of SmsResponse object after sending the sms
      */
-    public SmsResponse sendSms(SmsRequest smsRequest) {
-        Sms sms = validateAndPersistNewSmsRequest(smsRequest);
-        String prettyNumber = numberPrefixService.removeLeadingPlusSignAndZeros(smsRequest.getNumber());
-        int[] availablePrefixes = providerRepository.getAvailablePrefixes();
-        int prefix = numberPrefixService.getPrefixFromNumber(prettyNumber, availablePrefixes);
-        Provider[] providers = providerRepository.findByPrefixWithMinCost(prefix);
-        Provider provider = getSingleProvider(providers);
-        //Enviar missatge
-        persistSentSms(sms, provider.getName());
-        return SmsResponse.builder().id(sms.getId()).provider(provider.getName()).build();
+    public List<SmsResponse> sendSms(List<SmsRequest> smsRequests) {
+        List<SmsResponse> smsResponses = new ArrayList<>();
+        for (SmsRequest smsRequest : smsRequests) {
+            Sms sms = validateAndPersistNewSmsRequest(smsRequest);
+            String prettyNumber = numberPrefixService.removeNumLeadingPlusSignAndZeros(smsRequest.getNumber());
+            int[] availablePrefixes = providerRepository.getAvailablePrefixes();
+            int prefix = numberPrefixService.getPrefixFromNumber(prettyNumber, availablePrefixes);
+            Provider[] providers = providerRepository.findByPrefixWithMinCost(prefix);
+            Provider provider = getSingleProvider(providers);
+            //Enviar missatge
+            persistSentSms(sms, provider.getName());
+            smsResponses.add(SmsResponse.builder().id(sms.getId()).provider(provider.getName()).build());
+        }
+        return smsResponses;
     }
 
     /**
@@ -52,11 +58,11 @@ public class DispatcherServiceImpl implements DispatcherService {
      *
      * @param providers array of providers
      * @return random provider from the array input
-     * @throws NullPointerException if providers is null
+     * @throws NullPointerException     if providers is null
      * @throws IllegalArgumentException if providers length is zero
      */
     private Provider getSingleProvider(Provider[] providers) {
-        if (providers == null ||providers.length == 0) {
+        if (providers == null || providers.length == 0) {
             throw new IllegalArgumentException(ERROR_NO_PROVIDERS);
         } else if (providers.length == 1) {
             return providers[0];
@@ -72,7 +78,7 @@ public class DispatcherServiceImpl implements DispatcherService {
      * @return persisted Sms object saved with status RECEIVED
      */
     private Sms validateAndPersistNewSmsRequest(SmsRequest smsRequest) {
-        if(smsRequest.getNumber() == null){
+        if (smsRequest.getNumber() == null) {
             throw new IllegalArgumentException(ERROR_INVALID_NUMBER + " " + smsRequest.getNumber());
         }
         Sms sms = Sms.builder().number(smsRequest.getNumber()).text(smsRequest.getText()).status(STATUS_RECEIVED).build();
@@ -82,7 +88,7 @@ public class DispatcherServiceImpl implements DispatcherService {
     /**
      * updateSmsStatus
      *
-     * @param sms Sms object
+     * @param sms      Sms object
      * @param provider name of the selected provider
      */
     private void persistSentSms(Sms sms, String provider) {
