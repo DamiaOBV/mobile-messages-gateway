@@ -3,19 +3,19 @@ package com.mobilemessagesgateway.service;
 import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_INVALID_NUMBER;
 import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_NO_PREFIXES;
 import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_PREFIX_NOT_FOUND_FOR_NUMBER;
-import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_REMOVE_LEAD_PLUS_0_NULL_INPUT;
 
 import java.util.Arrays;
+import java.util.NoSuchElementException;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 @CommonsLog
-public class NumberPrefixServiceImpl implements NumberPrefixService {
+public class NumberUtilsImpl implements NumberUtils {
 
     @Autowired
-    public NumberPrefixServiceImpl() {
+    public NumberUtilsImpl() {
     }
 
     /**
@@ -41,7 +41,7 @@ public class NumberPrefixServiceImpl implements NumberPrefixService {
                 return prefixes[i];
             }
         }
-
+        //TODO Revisar si hay una manera mejor de controlar este error
         throw new IllegalArgumentException(ERROR_PREFIX_NOT_FOUND_FOR_NUMBER + " " + number + " " + Arrays.toString(prefixes));
     }
 
@@ -50,15 +50,17 @@ public class NumberPrefixServiceImpl implements NumberPrefixService {
      *
      * @param number string
      * @return input string without the leading plus sign and zeros
-     * @throws NullPointerException     if str is null
-     * @throws IllegalArgumentException if number is not numeric or does not start with any of the provided prefixes
+     * @throws IllegalArgumentException if number is null, is not numeric or does not start with any of the provided prefixes
      */
     public String removeNumLeadingPlusSignAndZeros(String number) {
-        if (number == null || !isNumeric(number)) {
+        if (number == null) {
             throw new IllegalArgumentException(ERROR_INVALID_NUMBER + " " + number);
         }
-        if (number.startsWith("+")) {
-            number = number.substring(1);
+
+        number = number.replaceFirst("^\\+","");
+
+        if(!isNumeric(number)){
+            throw new IllegalArgumentException(ERROR_INVALID_NUMBER + " " + number);
         }
         return number.replaceFirst("^0*", "");
     }

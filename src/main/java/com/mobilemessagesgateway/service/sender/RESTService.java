@@ -1,4 +1,4 @@
-package com.mobilemessagesgateway.service.provider;
+package com.mobilemessagesgateway.service.sender;
 
 import com.mobilemessagesgateway.domain.dto.provider.RESTRequest;
 import lombok.extern.apachecommons.CommonsLog;
@@ -17,14 +17,13 @@ public class RESTService implements SenderService {
      * sendSms
      *
      * @param text   Sms body
-     * @param prefix number prefix
      * @param number phone number
      * @param url    sms destination url
      */
     //TODO Mock Service - Real SMS sending not implemented yet
-    public void sendSms(String text, int prefix, String number, String url) {
-        log.info("Sending SMS using REST protocol");
-        RESTRequest restRequest = buildRESTRequest(text, prefix, number, url);
+    public void sendSms(String text, String number, String url) {
+        log.info("Sending sms using REST protocol");
+        RESTRequest restRequest = buildRESTRequest(text, number, url);
         log.info(restRequest);
     }
 
@@ -32,15 +31,14 @@ public class RESTService implements SenderService {
      * buildRESTRequest
      *
      * @param text   Sms body
-     * @param prefix number prefix
      * @param number phone number
      * @param url    sms destination url
      * @return RESTRequest REST provider http body
      */
     //TODO Method only for mock sendSms service.
-    private RESTRequest buildRESTRequest(String text, int prefix, String number, String url) {
+    private RESTRequest buildRESTRequest(String text, String number, String url) {
 
-        return RESTRequest.builder().text(text).prefix(prefix).number(number).url(url).build();
+        return RESTRequest.builder().text(text).number(number).url(url).build();
     }
 
 }

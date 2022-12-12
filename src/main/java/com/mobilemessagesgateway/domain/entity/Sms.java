@@ -24,10 +24,10 @@ public class Sms {
     @Column(name = "id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false)
     private String number;
     private String text;
     private String provider;
     private String status;
+    private String message;
 
 }

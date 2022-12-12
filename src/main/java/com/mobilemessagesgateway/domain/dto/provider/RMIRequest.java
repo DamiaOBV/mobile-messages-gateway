@@ -9,7 +9,6 @@ import lombok.Data;
 public class RMIRequest {
 
     private String text;
-    private int prefix;
     private String number;
     private String url;
 }

@@ -11,7 +11,6 @@ import lombok.Data;
 public class RESTRequest {
 
     private String text;
-    private int prefix;
     private String number;
     private String url;
 }

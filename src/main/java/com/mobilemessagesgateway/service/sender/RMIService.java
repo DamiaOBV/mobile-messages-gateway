@@ -1,4 +1,4 @@
-package com.mobilemessagesgateway.service.provider;
+package com.mobilemessagesgateway.service.sender;
 
 import com.mobilemessagesgateway.domain.dto.provider.RMIRequest;
 import lombok.extern.apachecommons.CommonsLog;
@@ -17,14 +17,13 @@ public class RMIService implements SenderService {
      * sendSms
      *
      * @param text   Sms body
-     * @param prefix number prefix
      * @param number phone number
      * @param url    sms destination url
      */
     //TODO Mock Service - Real SMS sending not implemented yet
-    public void sendSms(String text, int prefix, String number, String url) {
-        log.info("Sending RMI using REST protocol");
-        RMIRequest rmiRequest = buildRMIRequest(text, prefix, number, url);
+    public void sendSms(String text, String number, String url) {
+        log.info("Sending sms using RMI protocol");
+        RMIRequest rmiRequest = buildRMIRequest(text, number, url);
         log.info(rmiRequest);
     }
 
@@ -32,15 +31,14 @@ public class RMIService implements SenderService {
      * buildRMIRequest
      *
      * @param text   Sms body
-     * @param prefix number prefix
      * @param number phone number
      * @param url    sms destination url
      * @return RMIRequest RMI provider http body
      */
     //TODO Method only for mock sendSms service.
-    private RMIRequest buildRMIRequest(String text, int prefix, String number, String url) {
+    private RMIRequest buildRMIRequest(String text, String number, String url) {
 
-        return RMIRequest.builder().text(text).prefix(prefix).number(number).url(url).build();
+        return RMIRequest.builder().text(text).number(number).url(url).build();
     }
 
 }

@@ -9,4 +9,5 @@ public class SmsResponse {
 
     private long id;
     private String provider;
+    private String status;
 }

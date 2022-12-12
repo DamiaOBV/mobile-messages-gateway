@@ -1,6 +1,6 @@
 package com.mobilemessagesgateway.domain.dto;
 
-import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotBlank;
 import lombok.Builder;
 import lombok.Data;
 
@@ -8,7 +8,7 @@ import lombok.Data;
 @Builder
 public class SmsRequest {
 
-    @NotEmpty(message = "Field number is required")
+    @NotBlank(message = "Field number is required")
     private String number;
     private String text;
 }

@@ -2,9 +2,10 @@ package com.mobilemessagesgateway;
 
 import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_INVALID_NUMBER;
 import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_NO_PREFIXES;
-import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_REMOVE_LEAD_PLUS_0_NULL_INPUT;
+import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_PREFIX_NOT_FOUND_FOR_NUMBER;
 
-import com.mobilemessagesgateway.service.NumberPrefixService;
+import com.mobilemessagesgateway.service.NumberUtils;
+import java.util.Arrays;
 import java.util.stream.Stream;
 import lombok.extern.apachecommons.CommonsLog;
 import org.junit.jupiter.api.Assertions;
@@ -22,11 +23,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 @AutoConfigureMockMvc
 @CommonsLog
-@DisplayName("ProviderService")
-public class NumberPrefixServiceTest {
+@DisplayName("NumberUtils")
+public class NumberUtilsTest {
 
     @Autowired
-    NumberPrefixService numberPrefixService;
+    NumberUtils numberUtils;
+
+    private static final int[] PREFIXES = {33, 34, 93, 1, 0, 359};
 
     @Nested
     @DisplayName("removeNumLeadingPlusSignAndZeros")
@@ -39,20 +42,27 @@ public class NumberPrefixServiceTest {
             @Test
             @DisplayName("removeNumLeadingPlusSignAndZeros with null input should throw IllegalArgumentException")
             public void removeNumLeadingPlusSignAndZeros_IllegalArgumentException() {
-                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                    numberPrefixService.removeNumLeadingPlusSignAndZeros(null);
-                });
+                Exception exception = Assertions.assertThrows(IllegalArgumentException.class,
+                                                              () -> numberUtils.removeNumLeadingPlusSignAndZeros(null));
                 Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + null, exception.getMessage());
             }
 
             @ParameterizedTest
-            @ValueSource(strings = {"asdas","+asd102das","","    ","+","+++123"})
+            @MethodSource("generateremoveNumLeadingPlusSignAndZerosInvalidData")
             @DisplayName("removeNumLeadingPlusSignAndZeros with non numeric input should throw IllegalArgumentException")
-            public void removeNumLeadingPlusSignAndZeros_RemovePlusAndZeros(String number) {
-                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                    numberPrefixService.removeNumLeadingPlusSignAndZeros(number);
-                });
-                Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + number, exception.getMessage());
+            public void removeNumLeadingPlusSignAndZeros_RemovePlusAndZeros(String number, String prettyNumber) {
+                Exception exception = Assertions.assertThrows(IllegalArgumentException.class,
+                                                              () -> numberUtils.removeNumLeadingPlusSignAndZeros(number));
+                Assertions.assertEquals((ERROR_INVALID_NUMBER + " " + prettyNumber), exception.getMessage());
+            }
+
+            private static Stream<Arguments> generateremoveNumLeadingPlusSignAndZerosInvalidData() {
+                return Stream.of(Arguments.of("asdas", "asdas"),
+                                 Arguments.of("+asd102das", "asd102das"),
+                                 Arguments.of("", ""),
+                                 Arguments.of("    ", "    "),
+                                 Arguments.of("+", ""),
+                                 Arguments.of("+++123", "++123"));
             }
         }
 
@@ -64,7 +74,7 @@ public class NumberPrefixServiceTest {
             @MethodSource("generateremoveNumLeadingPlusSignAndZerosValidData")
             @DisplayName("removeNumLeadingPlusSignAndZeros with an input string that starts with '+' or zeros should return the argument without")
             public void removeNumLeadingPlusSignAndZeros_RemovePlusAndZeros(String input, String output) {
-                Assertions.assertEquals(numberPrefixService.removeNumLeadingPlusSignAndZeros(input), output);
+                Assertions.assertEquals(numberUtils.removeNumLeadingPlusSignAndZeros(input), output);
             }
 
             private static Stream<Arguments> generateremoveNumLeadingPlusSignAndZerosValidData() {
@@ -88,23 +98,27 @@ public class NumberPrefixServiceTest {
         @DisplayName("failure")
         class getPrefixFromNumber_Failure {
 
-            private static final int[] BASIC_PREFIXES = {33, 34};
-
             @Test
             @DisplayName("getPrefixFromNumber with null prefixes array should throw IllegalArgumentException")
             public void getPrefixFromNumber_IllegalArgumentException() {
-                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                    numberPrefixService.getPrefixFromNumber("132456", null);
-                });
+                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> numberUtils.getPrefixFromNumber("132456", null));
                 Assertions.assertEquals(ERROR_NO_PREFIXES, exception.getMessage());
+            }
+
+            @Test
+            @DisplayName("getPrefixFromNumber with non existing prefix should throw IllegalArgumentException")
+            public void getPrefixFromNumber_NonExistingPrefix() {
+                String noPrefixNum = "+39122456";
+                Exception exception = Assertions.assertThrows(IllegalArgumentException.class,
+                                                              () -> numberUtils.getPrefixFromNumber(noPrefixNum, PREFIXES));
+                Assertions.assertEquals((ERROR_PREFIX_NOT_FOUND_FOR_NUMBER + " " + noPrefixNum + " " + Arrays.toString(PREFIXES)),
+                                        exception.getMessage());
             }
 
             @Test
             @DisplayName("getPrefixFromNumber with null argument number should throw IllegalArgumentException")
             public void getPrefixFromNumber_IllegalArgumentException_Null() {
-                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                    numberPrefixService.getPrefixFromNumber(null, BASIC_PREFIXES);
-                });
+                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> numberUtils.getPrefixFromNumber(null, PREFIXES));
                 Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + null, exception.getMessage());
             }
 
@@ -112,9 +126,8 @@ public class NumberPrefixServiceTest {
             @ValueSource(strings = {"dsada", "&%$+*", "  ", ""})
             @DisplayName("getPrefixFromNumber with not numeric argument number should throw IllegalArgumentException")
             public void getPrefixFromNumber_IllegalArgumentException_NaN(String number) {
-                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                    numberPrefixService.getPrefixFromNumber(number, BASIC_PREFIXES);
-                });
+                Exception exception = Assertions.assertThrows(IllegalArgumentException.class,
+                                                              () -> numberUtils.getPrefixFromNumber(number, PREFIXES));
                 Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + number, exception.getMessage());
             }
 
@@ -124,22 +137,20 @@ public class NumberPrefixServiceTest {
         @DisplayName("success")
         class getPrefixFromNumber_Success {
 
-            private static final int[] BASIC_PREFIXES = {33, 34, 93, 1, 0, 359};
-
             @ParameterizedTest
             @MethodSource("generateGetPrefixFromNumberValidData")
             @DisplayName("getPrefixFromNumber with a number that contains a prefix from the argument prefixes array")
-            public void getPrefixFromNumber(String number, int[] prefixes, int prefix) {
-                Assertions.assertEquals(numberPrefixService.getPrefixFromNumber(number, prefixes), prefix);
+            public void getPrefixFromNumber(String prettyNumber, int[] prefixes, int prefix) {
+                Assertions.assertEquals(numberUtils.getPrefixFromNumber(prettyNumber, prefixes), prefix);
             }
 
             private static Stream<Arguments> generateGetPrefixFromNumberValidData() {
-                return Stream.of(Arguments.of("3312346", BASIC_PREFIXES, 33),
-                                 Arguments.of("34666111222", BASIC_PREFIXES, 34),
-                                 Arguments.of("1666111222", BASIC_PREFIXES, 1),
-                                 Arguments.of("0666111222", BASIC_PREFIXES, 0),
-                                 Arguments.of("3591666111222", BASIC_PREFIXES, 359),
-                                 Arguments.of("33777111222", BASIC_PREFIXES, 33));
+                return Stream.of(Arguments.of("3312346", PREFIXES, 33),
+                                 Arguments.of("34666111222", PREFIXES, 34),
+                                 Arguments.of("1666111222", PREFIXES, 1),
+                                 Arguments.of("0666111222", PREFIXES, 0),
+                                 Arguments.of("3591666111222", PREFIXES, 359),
+                                 Arguments.of("33777111222", PREFIXES, 33));
             }
 
         }

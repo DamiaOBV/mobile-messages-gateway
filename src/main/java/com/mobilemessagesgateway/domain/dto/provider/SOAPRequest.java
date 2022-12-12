@@ -13,8 +13,6 @@ public class SOAPRequest {
     @XmlElement
     private String text;
     @XmlElement
-    private int prefix;
-    @XmlElement
     private String number;
     @XmlElement
     private String url;

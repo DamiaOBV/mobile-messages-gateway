@@ -1,6 +1,6 @@
 package com.mobilemessagesgateway.service;
 
-public interface NumberPrefixService {
+public interface NumberUtils {
 
     int getPrefixFromNumber(String number, int[] prefixes);
 

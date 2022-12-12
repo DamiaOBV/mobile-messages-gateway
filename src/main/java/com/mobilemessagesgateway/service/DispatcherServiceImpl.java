@@ -1,7 +1,10 @@
 package com.mobilemessagesgateway.service;
 
 import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_INVALID_NUMBER;
-import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_NO_PROVIDERS;
+import static com.mobilemessagesgateway.constants.GatewayConstants.REST_LITERAL;
+import static com.mobilemessagesgateway.constants.GatewayConstants.RMI_LITERAL;
+import static com.mobilemessagesgateway.constants.GatewayConstants.SOAP_LITERAL;
+import static com.mobilemessagesgateway.constants.GatewayConstants.STATUS_ERROR;
 import static com.mobilemessagesgateway.constants.GatewayConstants.STATUS_RECEIVED;
 import static com.mobilemessagesgateway.constants.GatewayConstants.STATUS_SENT;
 
@@ -9,26 +12,38 @@ import com.mobilemessagesgateway.domain.dto.SmsRequest;
 import com.mobilemessagesgateway.domain.dto.SmsResponse;
 import com.mobilemessagesgateway.domain.entity.Provider;
 import com.mobilemessagesgateway.domain.entity.Sms;
-import com.mobilemessagesgateway.domain.repository.ProviderRepository;
 import com.mobilemessagesgateway.domain.repository.SmsRepository;
+import com.mobilemessagesgateway.service.sender.RESTService;
+import com.mobilemessagesgateway.service.sender.RMIService;
+import com.mobilemessagesgateway.service.sender.SOAPService;
+import com.mobilemessagesgateway.service.sender.SenderService;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
+@CommonsLog
 public class DispatcherServiceImpl implements DispatcherService {
 
-    NumberPrefixService numberPrefixService;
-    ProviderRepository providerRepository;
+    NumberUtils numberUtils;
+    ProviderService providerService;
     SmsRepository smsRepository;
+    SenderService restService;
+    SenderService soapService;
+    SenderService rmiService;
 
     @Autowired
-    public DispatcherServiceImpl(NumberPrefixService numberPrefixService, ProviderRepository providerRepository, SmsRepository smsRepository) {
-        this.numberPrefixService = numberPrefixService;
-        this.providerRepository = providerRepository;
+    public DispatcherServiceImpl(
+            NumberUtils numberUtils, ProviderService providerService, SmsRepository smsRepository,
+            RESTService restService, SOAPService soapService, RMIService rmiService) {
+        this.numberUtils = numberUtils;
+        this.providerService = providerService;
         this.smsRepository = smsRepository;
+        this.restService = restService;
+        this.soapService = soapService;
+        this.rmiService = rmiService;
     }
 
     /**
@@ -39,36 +54,22 @@ public class DispatcherServiceImpl implements DispatcherService {
      */
     public List<SmsResponse> sendSms(List<SmsRequest> smsRequests) {
         List<SmsResponse> smsResponses = new ArrayList<>();
+        String usedProvider = null;
+        Sms sms;
         for (SmsRequest smsRequest : smsRequests) {
-            Sms sms = validateAndPersistNewSmsRequest(smsRequest);
-            String prettyNumber = numberPrefixService.removeNumLeadingPlusSignAndZeros(smsRequest.getNumber());
-            int[] availablePrefixes = providerRepository.getAvailablePrefixes();
-            int prefix = numberPrefixService.getPrefixFromNumber(prettyNumber, availablePrefixes);
-            Provider[] providers = providerRepository.findByPrefixWithMinCost(prefix);
-            Provider provider = getSingleProvider(providers);
-            //Enviar missatge
-            persistSentSms(sms, provider.getName());
-            smsResponses.add(SmsResponse.builder().id(sms.getId()).provider(provider.getName()).build());
+            try {
+                sms = validateAndPersistNewSmsRequest(smsRequest);
+                Provider provider = providerService.findMinCostProvider(smsRequest.getNumber());
+                usedProvider = provider.getName();
+                send2Provider(sms.getText(), smsRequest.getNumber(), provider.getUrl(), provider.getProtocol());
+                persistSentSms(sms, usedProvider);
+            } catch (Exception e) {
+                sms = Sms.builder().number(smsRequest.getNumber()).text(smsRequest.getText()).status(STATUS_ERROR).build();
+                persistErrorSms(sms, e.getMessage());
+            }
+            smsResponses.add(SmsResponse.builder().id(sms.getId()).provider(usedProvider).status(sms.getStatus()).build());
         }
         return smsResponses;
-    }
-
-    /**
-     * getSingleProvider
-     *
-     * @param providers array of providers
-     * @return random provider from the array input
-     * @throws NullPointerException     if providers is null
-     * @throws IllegalArgumentException if providers length is zero
-     */
-    private Provider getSingleProvider(Provider[] providers) {
-        if (providers == null || providers.length == 0) {
-            throw new IllegalArgumentException(ERROR_NO_PROVIDERS);
-        } else if (providers.length == 1) {
-            return providers[0];
-        } else {
-            return providers[new Random().nextInt(providers.length)];
-        }
     }
 
     /**
@@ -86,7 +87,23 @@ public class DispatcherServiceImpl implements DispatcherService {
     }
 
     /**
-     * updateSmsStatus
+     * send2Provider
+     *
+     * @param text     message body
+     * @param number   phone number
+     * @param url      destination url
+     * @param protocol chosen protocol
+     */
+    private void send2Provider(String text, String number, String url, String protocol) {
+        switch (protocol) {
+            case SOAP_LITERAL -> soapService.sendSms(text, number, url);
+            case REST_LITERAL -> restService.sendSms(text, number, url);
+            case RMI_LITERAL -> rmiService.sendSms(text, number, url);
+        }
+    }
+
+    /**
+     * persistSentSms
      *
      * @param sms      Sms object
      * @param provider name of the selected provider
@@ -97,4 +114,15 @@ public class DispatcherServiceImpl implements DispatcherService {
         smsRepository.save(sms);
     }
 
+    /**
+     * persistErrorSms
+     *
+     * @param sms     Sms object
+     * @param message error message
+     */
+    private void persistErrorSms(Sms sms, String message) {
+        sms.setStatus(STATUS_ERROR);
+        sms.setMessage(message);
+        smsRepository.save(sms);
+    }
 }

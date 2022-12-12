@@ -2,14 +2,17 @@ package com.mobilemessagesgateway;
 
 import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_INVALID_NUMBER;
 import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_PREFIX_NOT_FOUND_FOR_NUMBER;
+import static com.mobilemessagesgateway.constants.GatewayConstants.STATUS_ERROR;
+import static com.mobilemessagesgateway.constants.GatewayConstants.STATUS_SENT;
 import static org.mockito.Mockito.when;
 
 import com.mobilemessagesgateway.domain.dto.SmsRequest;
 import com.mobilemessagesgateway.domain.dto.SmsResponse;
 import com.mobilemessagesgateway.domain.entity.Provider;
-import com.mobilemessagesgateway.domain.repository.ProviderRepository;
 import com.mobilemessagesgateway.service.DispatcherService;
+import com.mobilemessagesgateway.service.ProviderService;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import lombok.extern.apachecommons.CommonsLog;
 import org.junit.jupiter.api.Assertions;
@@ -32,37 +35,30 @@ public class DispatcherServiceTest {
     DispatcherService dispatcherService;
 
     @MockBean
-    ProviderRepository providerRepository;
+    ProviderService providerService;
+
+    static final String CORRECT_33 = "3312345";
+    static final String CORRECT_34 = "+3412345";
+    static final String CORRECT_35 = "003512345";
+    static final String INCORRECT_40 = "4012345";
+    static final String INCORRECT_STR = "dasd&%";
+    static final String INCORRECT_UNKNOWN = "+31666456789";
 
     @BeforeEach
-    public void init(@Autowired ProviderRepository providerRepository) {
+    public void init() {
         int[] prefixes = {33, 34, 35, 36};
-        Provider[] providers33 = {
-                Provider.builder().id(4L).cost(3).prefix(33).protocol("REST").name("P5").url("jkl").build()
-        };
-        Provider[] providers34 = {
-                Provider.builder().id(1L).cost(1).prefix(34).protocol("REST").name("P6").url("abc").build(),
-                Provider.builder().id(2L).cost(1).prefix(34).protocol("REST").name("P7").url("ghi").build()
-                //                Provider.builder().id(3L).cost(2).prefix(34).protocol("SOAP").name("P2").url("def").build()
-        };
-        Provider[] providers35 = {
-                Provider.builder().id(1L).cost(2).prefix(35).protocol("REST").name("P8").url("abc").build(),
-                Provider.builder().id(2L).cost(2).prefix(35).protocol("REST").name("P9").url("ghi").build(),
-                Provider.builder().id(2L).cost(2).prefix(35).protocol("REST").name("P10").url("ghi").build()
-                //                Provider.builder().id(3L).cost(2).prefix(34).protocol("SOAP").name("P2").url("def").build()
-        };
-        Provider[] providers36 = {
-                Provider.builder().id(1L).cost(2).prefix(36).protocol("REST").name("P11").url("abc").build(),
-                Provider.builder().id(2L).cost(2).prefix(36).protocol("REST").name("P12").url("ghi").build(),
-                Provider.builder().id(2L).cost(2).prefix(36).protocol("REST").name("P13").url("ghi").build(),
-                Provider.builder().id(2L).cost(2).prefix(36).protocol("REST").name("P14").url("ghi").build()
-                //                Provider.builder().id(3L).cost(2).prefix(34).protocol("SOAP").name("P2").url("def").build()
-        };
-        when(providerRepository.getAvailablePrefixes()).thenReturn(prefixes);
-        when(providerRepository.findByPrefixWithMinCost(33)).thenReturn(providers33);
-        when(providerRepository.findByPrefixWithMinCost(34)).thenReturn(providers34);
-        when(providerRepository.findByPrefixWithMinCost(35)).thenReturn(providers35);
-        when(providerRepository.findByPrefixWithMinCost(36)).thenReturn(providers36);
+        when(providerService.findMinCostProvider(CORRECT_33)).thenReturn(
+                Provider.builder().id(4L).cost(3).prefix(33).protocol("REST").name("P5").url("jkl").build());
+        when(providerService.findMinCostProvider(CORRECT_34)).thenReturn(
+                Provider.builder().id(1L).cost(1).prefix(34).protocol("SOAP").name("P6").url("abc").build());
+        when(providerService.findMinCostProvider(CORRECT_35)).thenReturn(
+                Provider.builder().id(1L).cost(1).prefix(35).protocol("RMI").name("P6").url("def").build());
+        when(providerService.findMinCostProvider(INCORRECT_40)).thenThrow(
+                new IllegalArgumentException(ERROR_PREFIX_NOT_FOUND_FOR_NUMBER + " " + INCORRECT_40 + " " + Arrays.toString(prefixes)));
+        when(providerService.findMinCostProvider(INCORRECT_STR)).thenThrow(new IllegalArgumentException(ERROR_INVALID_NUMBER + " " + INCORRECT_STR));
+        when(providerService.findMinCostProvider(null)).thenThrow(new IllegalArgumentException(ERROR_INVALID_NUMBER + " " + null));
+        when(providerService.findMinCostProvider(INCORRECT_UNKNOWN)).thenThrow(
+                new IllegalArgumentException(ERROR_PREFIX_NOT_FOUND_FOR_NUMBER + " " + INCORRECT_UNKNOWN + " " + Arrays.toString(prefixes)));
     }
 
     @Nested
@@ -74,122 +70,25 @@ public class DispatcherServiceTest {
         class sendSms_Success {
 
             @Test
-            @DisplayName("sendSms with a correct input should return an object instace of SmsResponse")
+            @DisplayName("sendSms with a correct single input should return a one element list of SmsResponse with SENT status")
+            public void sendSms_CorrectSend_Single() {
+                List<SmsRequest> smsRequests = new ArrayList<>();
+                smsRequests.add(SmsRequest.builder().text("This is a message").number(CORRECT_34).build());
+                List<SmsResponse> smsResponses = dispatcherService.sendSms(smsRequests);
+                Assertions.assertTrue(STATUS_SENT.equalsIgnoreCase(smsResponses.get(0).getStatus()));
+            }
+
+            @Test
+            @DisplayName("sendSms with correct and incorrect input should return a SmsResponse List indicating which messages have been sent")
             public void sendSms_CorrectSend() {
                 List<SmsRequest> smsRequests = new ArrayList<>();
-                smsRequests.add(SmsRequest.builder().text("This is a message").number("3412345").build());
+                smsRequests.add(SmsRequest.builder().text("This is a message").number(CORRECT_33).build());
+                smsRequests.add(SmsRequest.builder().text("This is a message2").number(CORRECT_35).build());
+                smsRequests.add(SmsRequest.builder().text("This is a message3").number("4012345").build());
                 List<SmsResponse> smsResponses = dispatcherService.sendSms(smsRequests);
-                SmsResponse smsResponse = smsResponses.get(0);
-                log.info("provider: " + smsResponse.getProvider());
-                log.info("id: " + smsResponse.getId());
-                Assertions.assertInstanceOf(SmsResponse.class, smsResponse);
-            }
-
-            @Test
-            @DisplayName("sendSms when there are two providers with minimum cost a random provider should be used - multiple sms")
-            public void sendSms_Randomness2_Multiple() {
-                double minPercent = 40;
-                double maxPercent = 60;
-                int iterations = 100;
-                double providerP6 = 0;
-                double providerP7 = 0;
-                List<SmsResponse> smsResponses;
-                String provider;
-                List<SmsRequest> smsRequests = new ArrayList<>();
-                smsRequests.add(SmsRequest.builder().text("This is a message").number("+3412345").build());
-                smsRequests.add(SmsRequest.builder().text("This is a message 2").number("003412346").build());
-                smsRequests.add(SmsRequest.builder().text("This is a message 3").number("3412376").build());
-                for (int i = 0; i < iterations; i++) {
-                    smsResponses = dispatcherService.sendSms(smsRequests);
-                    for (int j = 0; j < 3; j++) {
-                        provider = smsResponses.get(j).getProvider();
-                        if (provider.equals("P6")) {
-                            providerP6++;
-                        } else if (provider.equals("P7")) {
-                            providerP7++;
-                        }
-                    }
-                }
-                double percentP6 = (providerP6 / (iterations * 3)) * 100;
-                double percentP7 = (providerP7 / (iterations * 3)) * 100;
-                log.info("providerP6: " + percentP6);
-                log.info("providerP7: " + percentP7);
-                Assertions.assertTrue(percentP6 > minPercent && percentP6 < maxPercent && percentP7 > minPercent && percentP7 < maxPercent);
-            }
-
-            @Test
-            @DisplayName("sendSms when there are three provider with minimum cost a random provider should be used")
-            public void sendSms_Randomness3() {
-                double minPercent = 15;
-                double maxPercent = 45;
-                int iterations = 100;
-                double providerP8 = 0;
-                double providerP9 = 0;
-                double providerP10 = 0;
-                SmsRequest smsRequest = SmsRequest.builder().text("This is a message").number("3512345").build();
-                List<SmsResponse> smsResponses;
-                String provider;
-                List<SmsRequest> smsRequests = new ArrayList<>();
-                smsRequests.add(smsRequest);
-                for (int i = 0; i < iterations; i++) {
-                    smsResponses = dispatcherService.sendSms(smsRequests);
-                    provider = smsResponses.get(0).getProvider();
-                    switch (provider) {
-                        case "P8" -> providerP8++;
-                        case "P9" -> providerP9++;
-                        case "P10" -> providerP10++;
-                    }
-                }
-                double percentP8 = (providerP8 / iterations) * 100;
-                double percentP9 = (providerP9 / iterations) * 100;
-                double percentP10 = (providerP10 / iterations) * 100;
-                log.info("providerP8: " + percentP8);
-                log.info("providerP9: " + percentP9);
-                log.info("providerP10: " + percentP10);
-                Assertions.assertTrue(percentP8 > minPercent && percentP8 < maxPercent && percentP9 > minPercent && percentP9 < maxPercent &&
-                                              percentP10 > minPercent && percentP10 < maxPercent);
-            }
-
-            @Test
-            @DisplayName("sendSms when there are four provider with minimum cost a random provider should be used - multiple sms")
-            public void sendSms_Randomness4() {
-                double minPercent = 10;
-                double maxPercent = 35;
-                int iterations = 100;
-                double providerP11 = 0;
-                double providerP12 = 0;
-                double providerP13 = 0;
-                double providerP14 = 0;
-                List<SmsResponse> smsResponses;
-                String provider;
-                List<SmsRequest> smsRequests = new ArrayList<>();
-                smsRequests.add(SmsRequest.builder().text("This is a message").number("+3612345").build());
-                smsRequests.add(SmsRequest.builder().text("This is a message 2").number("003612346").build());
-                smsRequests.add(SmsRequest.builder().text("This is a message 3").number("3612376").build());
-                smsRequests.add(SmsRequest.builder().text("This is a message 4").number("+03612376").build());
-                for (int i = 0; i < iterations; i++) {
-                    smsResponses = dispatcherService.sendSms(smsRequests);
-                    for (int j = 0; j < 4; j++) {
-                        provider = smsResponses.get(j).getProvider();
-                        switch (provider) {
-                            case "P11" -> providerP11++;
-                            case "P12" -> providerP12++;
-                            case "P13" -> providerP13++;
-                            case "P14" -> providerP14++;
-                        }
-                    }
-                }
-                double percentP11 = (providerP11 / (iterations * 4)) * 100;
-                double percentP12 = (providerP12 / (iterations * 4)) * 100;
-                double percentP13 = (providerP13 / (iterations * 4)) * 100;
-                double percentP14 = (providerP14 / (iterations * 4)) * 100;
-                log.info("providerP8: " + percentP11);
-                log.info("providerP9: " + percentP12);
-                log.info("providerP10: " + percentP13);
-                log.info("providerP10: " + percentP14);
-                Assertions.assertTrue(percentP11 > minPercent && percentP11 < maxPercent && percentP12 > minPercent && percentP12 < maxPercent &&
-                                              percentP13 > minPercent && percentP13 < maxPercent && percentP14 > minPercent &&
-                                              percentP14 < maxPercent);
+                Assertions.assertTrue(STATUS_SENT.equalsIgnoreCase(smsResponses.get(0).getStatus()) &&
+                                              STATUS_SENT.equalsIgnoreCase(smsResponses.get(1).getStatus()) &&
+                                              STATUS_ERROR.equalsIgnoreCase(smsResponses.get(2).getStatus()));
             }
         }
 
@@ -198,30 +97,31 @@ public class DispatcherServiceTest {
         class sendSms_Failure {
 
             @Test
-            @DisplayName("sendSms with not numeric number argument should throw IllegalArgumentException")
+            @DisplayName("sendSms with not numeric number argument should return SmsResponse with error status")
             public void sendSms_IllegalArgumentException_NaN() {
                 List<SmsRequest> smsRequests = new ArrayList<>();
-                smsRequests.add(SmsRequest.builder().text("This is a message").number("dasd&%").build());
-                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> dispatcherService.sendSms(smsRequests));
-                Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + smsRequests.get(0).getNumber(), exception.getMessage());
+                smsRequests.add(SmsRequest.builder().text("This is a message").number(INCORRECT_STR).build());
+                List<SmsResponse> smsResponses = dispatcherService.sendSms(smsRequests);
+                Assertions.assertTrue(STATUS_ERROR.equalsIgnoreCase(smsResponses.get(0).getStatus()));
+                ;
             }
 
             @Test
-            @DisplayName("sendSms with null number argument should throw IllegalArgumentException")
+            @DisplayName("sendSms with null number argument should return SmsResponse with error status")
             public void sendSms_IllegalArgumentException_Null() {
                 List<SmsRequest> smsRequests = new ArrayList<>();
                 smsRequests.add(SmsRequest.builder().text("This is a message").number(null).build());
-                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> dispatcherService.sendSms(smsRequests));
-                Assertions.assertEquals(ERROR_INVALID_NUMBER + " " + smsRequests.get(0).getNumber(), exception.getMessage());
+                List<SmsResponse> smsResponses = dispatcherService.sendSms(smsRequests);
+                Assertions.assertTrue(STATUS_ERROR.equalsIgnoreCase(smsResponses.get(0).getStatus()));
             }
 
             @Test
-            @DisplayName("sendSms with an unknown prefix number should throw IllegalArgumentException")
+            @DisplayName("sendSms with an unknown prefix number should return SmsResponse with error status")
             public void sendSms_IllegalArgumentException_NaaN() {
                 List<SmsRequest> smsRequests = new ArrayList<>();
                 smsRequests.add(SmsRequest.builder().text("This is a message").number("+31666456789").build());
-                Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> dispatcherService.sendSms(smsRequests));
-                Assertions.assertTrue(exception.getMessage().startsWith(ERROR_PREFIX_NOT_FOUND_FOR_NUMBER));
+                List<SmsResponse> smsResponses = dispatcherService.sendSms(smsRequests);
+                Assertions.assertTrue(STATUS_ERROR.equalsIgnoreCase(smsResponses.get(0).getStatus()));
             }
         }
     }
