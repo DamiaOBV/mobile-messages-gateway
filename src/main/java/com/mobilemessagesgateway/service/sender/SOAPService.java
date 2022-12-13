@@ -22,7 +22,7 @@ public class SOAPService implements SenderService {
      */
     //TODO Mock Service - Real SMS sending not implemented yet
     public void sendSms(String text, String number, String url) {
-        log.info("Sending sms: '" + text + "' to '" + number + "' using REST protocol. Provider url: '" + url + "'");
+        log.info("Sending sms: '" + text + "' to '" + number + "' using SOAP protocol. Provider url: '" + url + "'");
         SOAPRequest soapRequest = buildSOAPRequest(text, number, url);
     }
 
