@@ -22,9 +22,8 @@ public class RMIService implements SenderService {
      */
     //TODO Mock Service - Real SMS sending not implemented yet
     public void sendSms(String text, String number, String url) {
-        log.info("Sending sms using RMI protocol");
+        log.info("Sending sms: '" + text + "' to '" + number + "' using REST protocol. Provider url: '" + url + "'");
         RMIRequest rmiRequest = buildRMIRequest(text, number, url);
-        log.info(rmiRequest);
     }
 
     /**
