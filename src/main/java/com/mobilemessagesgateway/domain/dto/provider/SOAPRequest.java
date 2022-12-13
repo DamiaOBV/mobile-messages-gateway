@@ -10,6 +10,7 @@ import lombok.Data;
 @XmlRootElement
 //TODO Example class with some useful fields --> This should be revised for real calls
 public class SOAPRequest {
+
     @XmlElement
     private String text;
     @XmlElement

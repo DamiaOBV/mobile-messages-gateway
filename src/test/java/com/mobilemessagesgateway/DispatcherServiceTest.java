@@ -4,6 +4,7 @@ import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_INVALID
 import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_PREFIX_NOT_FOUND_FOR_NUMBER;
 import static com.mobilemessagesgateway.constants.GatewayConstants.STATUS_ERROR;
 import static com.mobilemessagesgateway.constants.GatewayConstants.STATUS_SENT;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.mobilemessagesgateway.domain.dto.SmsRequest;
@@ -11,6 +12,9 @@ import com.mobilemessagesgateway.domain.dto.SmsResponse;
 import com.mobilemessagesgateway.domain.entity.Provider;
 import com.mobilemessagesgateway.service.DispatcherService;
 import com.mobilemessagesgateway.service.ProviderService;
+import com.mobilemessagesgateway.service.sender.RESTService;
+import com.mobilemessagesgateway.service.sender.RMIService;
+import com.mobilemessagesgateway.service.sender.SOAPService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -36,6 +41,13 @@ public class DispatcherServiceTest {
 
     @MockBean
     ProviderService providerService;
+
+    @MockBean
+    RESTService restService;
+    @MockBean
+    SOAPService soapService;
+    @MockBean
+    RMIService rmiService;
 
     static final String CORRECT_33 = "3312345";
     static final String CORRECT_34 = "+3412345";
@@ -75,6 +87,7 @@ public class DispatcherServiceTest {
                 List<SmsRequest> smsRequests = new ArrayList<>();
                 smsRequests.add(SmsRequest.builder().text("This is a message").number(CORRECT_34).build());
                 List<SmsResponse> smsResponses = dispatcherService.sendSms(smsRequests);
+                Mockito.verify(soapService).sendSms(any(), any(), any());
                 Assertions.assertTrue(STATUS_SENT.equalsIgnoreCase(smsResponses.get(0).getStatus()));
             }
 
@@ -86,6 +99,8 @@ public class DispatcherServiceTest {
                 smsRequests.add(SmsRequest.builder().text("This is a message2").number(CORRECT_35).build());
                 smsRequests.add(SmsRequest.builder().text("This is a message3").number("4012345").build());
                 List<SmsResponse> smsResponses = dispatcherService.sendSms(smsRequests);
+                Mockito.verify(restService).sendSms(any(), any(), any());
+                Mockito.verify(rmiService).sendSms(any(), any(), any());
                 Assertions.assertTrue(STATUS_SENT.equalsIgnoreCase(smsResponses.get(0).getStatus()) &&
                                               STATUS_SENT.equalsIgnoreCase(smsResponses.get(1).getStatus()) &&
                                               STATUS_ERROR.equalsIgnoreCase(smsResponses.get(2).getStatus()));
@@ -103,7 +118,6 @@ public class DispatcherServiceTest {
                 smsRequests.add(SmsRequest.builder().text("This is a message").number(INCORRECT_STR).build());
                 List<SmsResponse> smsResponses = dispatcherService.sendSms(smsRequests);
                 Assertions.assertTrue(STATUS_ERROR.equalsIgnoreCase(smsResponses.get(0).getStatus()));
-                ;
             }
 
             @Test

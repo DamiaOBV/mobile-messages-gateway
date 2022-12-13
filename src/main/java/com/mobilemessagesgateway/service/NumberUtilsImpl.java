@@ -5,7 +5,6 @@ import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_NO_PREF
 import static com.mobilemessagesgateway.constants.GatewayConstants.ERROR_PREFIX_NOT_FOUND_FOR_NUMBER;
 
 import java.util.Arrays;
-import java.util.NoSuchElementException;
 import lombok.extern.apachecommons.CommonsLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -19,7 +18,7 @@ public class NumberUtilsImpl implements NumberUtils {
     }
 
     /**
-     * getPrefixFromNumber
+     * Extracts the prefix of the number (after removing leading '+' and zeros) if included in the list of prefixes.
      *
      * @param number   numeric string
      * @param prefixes array of prefixes
@@ -41,12 +40,13 @@ public class NumberUtilsImpl implements NumberUtils {
                 return prefixes[i];
             }
         }
-        //TODO Revisar si hay una manera mejor de controlar este error
+
         throw new IllegalArgumentException(ERROR_PREFIX_NOT_FOUND_FOR_NUMBER + " " + number + " " + Arrays.toString(prefixes));
     }
 
     /**
-     * removeLeadingPlusSignAndZeros
+     * Removes the first '+' sign of a number and/or all of the leading zeros. If the string without the '+' sign is not a number it will throw an
+     * error.
      *
      * @param number string
      * @return input string without the leading plus sign and zeros
@@ -57,16 +57,16 @@ public class NumberUtilsImpl implements NumberUtils {
             throw new IllegalArgumentException(ERROR_INVALID_NUMBER + " " + number);
         }
 
-        number = number.replaceFirst("^\\+","");
+        number = number.replaceFirst("^\\+", "");
 
-        if(!isNumeric(number)){
+        if (!isNumeric(number)) {
             throw new IllegalArgumentException(ERROR_INVALID_NUMBER + " " + number);
         }
         return number.replaceFirst("^0*", "");
     }
 
     /**
-     * isNumeric
+     * Validates if a string can be parsed to a long.
      *
      * @param number string
      * @return true if the string can be parsed to an integer and false if not

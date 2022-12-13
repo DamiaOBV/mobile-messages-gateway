@@ -135,7 +135,14 @@ public class ProviderServiceTest {
             @MethodSource("generateFindMinCostProviderValidData")
             @DisplayName("findMinCostProvider with a number with an existing prefix should return a Provider object")
             public void findMinCostProvider_ProviderRetrieved(String number) {
-                Assertions.assertInstanceOf(Provider.class, providerService.findMinCostProvider(number));
+                Provider provider = providerService.findMinCostProvider(number);
+                Assertions.assertInstanceOf(Provider.class, provider);
+                Assertions.assertNotNull(provider.getId());
+                Assertions.assertNotNull(provider.getName());
+                Assertions.assertNotEquals(provider.getPrefix(),0);
+                Assertions.assertNotEquals(provider.getCost(),0);
+                Assertions.assertNotNull(provider.getUrl());
+                Assertions.assertNotNull(provider.getProtocol());
             }
 
             private static Stream<Arguments> generateFindMinCostProviderValidData() {
@@ -251,7 +258,7 @@ public class ProviderServiceTest {
 
             @ParameterizedTest
             @MethodSource("generateFindMinCostProviderInvalidNoPrefixData")
-            @DisplayName("findMinCostProvider with a number with a non existing prefix should return IllegalArgumentException")
+            @DisplayName("findMinCostProvider with a number with a non existing prefix should throw IllegalArgumentException")
             public void findMinCostProvider_IllegalArgumentException(String number, String prettyNumber) {
                 Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> providerService.findMinCostProvider(number));
                 Assertions.assertEquals((ERROR_PREFIX_NOT_FOUND_FOR_NUMBER + " " + prettyNumber + " " + Arrays.toString(PREFIXES)), exception.getMessage());
@@ -266,7 +273,7 @@ public class ProviderServiceTest {
 
             @ParameterizedTest
             @MethodSource("generateFindMinCostProviderInvalidNaNData")
-            @DisplayName("findMinCostProvider with a non numeric number argument should return IllegalArgumentException")
+            @DisplayName("findMinCostProvider with a non numeric number argument should throw IllegalArgumentException")
             public void findMinCostProvider_atrieved(String number) {
                 Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> providerService.findMinCostProvider(number));
                 Assertions.assertEquals((ERROR_INVALID_NUMBER + " " + number), exception.getMessage());

@@ -72,7 +72,8 @@ public class NumberUtilsTest {
 
             @ParameterizedTest
             @MethodSource("generateremoveNumLeadingPlusSignAndZerosValidData")
-            @DisplayName("removeNumLeadingPlusSignAndZeros with an input string that starts with '+' or zeros should return the argument without")
+            @DisplayName(
+                    "removeNumLeadingPlusSignAndZeros with a number that starts with '+' or zeros should return the number without the zeros or/and the '+'")
             public void removeNumLeadingPlusSignAndZeros_RemovePlusAndZeros(String input, String output) {
                 Assertions.assertEquals(numberUtils.removeNumLeadingPlusSignAndZeros(input), output);
             }
@@ -139,7 +140,7 @@ public class NumberUtilsTest {
 
             @ParameterizedTest
             @MethodSource("generateGetPrefixFromNumberValidData")
-            @DisplayName("getPrefixFromNumber with a number that contains a prefix from the argument prefixes array")
+            @DisplayName("getPrefixFromNumber with an input that contains a prefix from the argument prefixes array should return the number prefix")
             public void getPrefixFromNumber(String prettyNumber, int[] prefixes, int prefix) {
                 Assertions.assertEquals(numberUtils.getPrefixFromNumber(prettyNumber, prefixes), prefix);
             }

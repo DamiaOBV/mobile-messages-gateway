@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.util.List;
-
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -32,13 +31,13 @@ public class SmsController {
         this.dispatcherService = dispatcherService;
     }
 
-    @Operation(summary = "Send SMS",
-               description = "Send SMS following Least Cost Routing strategy")
-    @ApiResponse(responseCode = "200", description = "Correct response",
+    @Operation(summary = "Send SMS following Least Cost Routing strategy",
+               description = "Send SMS to the minimum cost provider. Input can be a list or a single SmsRequest. If more than one providers have " +
+                       "the same cost a random one will be chosen.")
+    @ApiResponse(responseCode = "200", description = "OK",
                  content = {@Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                                      array = @ArraySchema(schema = @Schema(implementation = SmsResponse.class)))})
     @PostMapping("send")
-    //TODO La validación debería devolver un 400 en caso de fallo y no un 500
     public ResponseEntity<Object> sendSms(@Valid @RequestBody List<SmsRequest> smsRequest) {
         return ResponseEntity.ok(dispatcherService.sendSms(smsRequest));
     }

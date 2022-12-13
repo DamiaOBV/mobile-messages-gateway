@@ -47,10 +47,11 @@ public class DispatcherServiceImpl implements DispatcherService {
     }
 
     /**
-     * getSingleProvider
+     * Sends message to minimum cost provider given a list of sms requests. If a message fails it will continue to the next one and reflect the error
+     * in the response and in the database.
      *
      * @param smsRequests list of SmsRequest object
-     * @return List of SmsResponse object after sending the sms
+     * @return SmsResponse for each processed sms
      */
     public List<SmsResponse> sendSms(List<SmsRequest> smsRequests) {
         List<SmsResponse> smsResponses = new ArrayList<>();
@@ -73,21 +74,7 @@ public class DispatcherServiceImpl implements DispatcherService {
     }
 
     /**
-     * persistNewSmsRequest
-     *
-     * @param smsRequest SmsRequest object
-     * @return persisted Sms object saved with status RECEIVED
-     */
-    private Sms validateAndPersistNewSmsRequest(SmsRequest smsRequest) {
-        if (smsRequest.getNumber() == null) {
-            throw new IllegalArgumentException(ERROR_INVALID_NUMBER + " " + smsRequest.getNumber());
-        }
-        Sms sms = Sms.builder().number(smsRequest.getNumber()).text(smsRequest.getText()).status(STATUS_RECEIVED).build();
-        return smsRepository.save(sms);
-    }
-
-    /**
-     * send2Provider
+     * Calls the proper service according the providers protocol
      *
      * @param text     message body
      * @param number   phone number
@@ -103,7 +90,21 @@ public class DispatcherServiceImpl implements DispatcherService {
     }
 
     /**
-     * persistSentSms
+     * Stores new Sms request in database. Returns null if number is null.
+     *
+     * @param smsRequest SmsRequest object
+     * @return persisted Sms object saved with status RECEIVED
+     */
+    private Sms validateAndPersistNewSmsRequest(SmsRequest smsRequest) {
+        if (smsRequest.getNumber() == null) {
+            throw new IllegalArgumentException(ERROR_INVALID_NUMBER + " " + smsRequest.getNumber());
+        }
+        Sms sms = Sms.builder().number(smsRequest.getNumber()).text(smsRequest.getText()).status(STATUS_RECEIVED).build();
+        return smsRepository.save(sms);
+    }
+
+    /**
+     * Stores properly sent sms registry.
      *
      * @param sms      Sms object
      * @param provider name of the selected provider
@@ -115,7 +116,7 @@ public class DispatcherServiceImpl implements DispatcherService {
     }
 
     /**
-     * persistErrorSms
+     * Stores failed sms registry.
      *
      * @param sms     Sms object
      * @param message error message
